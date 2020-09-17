@@ -1,74 +1,99 @@
-import React from 'react'
+import React from 'react' // DON'T NEED THIS BECAUSE I'M DOING THIS WITH A CLASS 'CAUSE I'M A REBEL
 import './Form.scss'
+import md5 from 'md5'
 
 class Form extends React.Component {
     constructor(props){
         super(props)
+
+        const method = props.request.method || 'get' // if there is a method in state, be that, else be 'get'
+        const url = props.request.url || '' // same as above, except if url doesn't exist, make it an empty string
+        const data = props.request.data ? JSON.stringify(props.request.data) : ''
+
         this.state = {
-            url: null,
-            method : null
+            request: {
+                method,
+                url,
+                data,
+            }
         }
     }
 
-    handleWord = event => {
-        let url = event.target.value;
-        this.setState({ url })
+    componentDidUpdate(props) {
+        const nextHash = md5(JSON.stringify(props.request))
+        const stateHash = md5(JSON.stringify(this.state.request))
+
+        if(nextHash === stateHash) return;
+
+        const request = { ...props.request}
+
+        this.setState({request})
     }
+
+    changeMethod = (method) => {
+        const newRequest = {...this.state.request, method}
+        this.setState({request: newRequest})
+    }
+
+    changeURL = (event) => {
+        let url = event.target.value
+        const newRequest = {...this.state.request, url}
+        this.setState({request: newRequest})
+    }
+
+    changeMethod = (method) => {
+        const newRequest = {...this.state.request, method};
+        this.setState({request: newRequest})
+    }
+
+    changeBody = (event) => {
+        try {
+            let data = JSON.parse(event.target.value)
+            const newRequest = {...this.state.request, data};
+
+            this.setState({request: newRequest})
+        } catch(e) { }
+    }
+
+    
 
     handleSubmit = async event => {
-        
         event.preventDefault()
-        
-        let url = this.state.url
-        this.setState({ url })
-
-        let raw = await fetch(url)
-        console.log(raw)
-        let data = await raw.json()
-
-        let count = data.count
-        let people = data.results.reduce((list, person) => {
-            list[person.name] = person.url;
-            return list;
-        }, {})
-
-        this.props.handler(count, raw.headers, people);
+        console.log('in submit')
+        this.props.handler(this.state.request);
     }
 
-    handleSelect = event => {
-        let method = event.target.value
-        this.setState({ method })
-    }
+    
 
     render() {
         return (
             <div className="form">
                 <form onSubmit={this.handleSubmit}>
                     <label for="url">URL: </label>
-                    <input onChange={this.handleWord} id="url" />
+                    <input 
+                        type="text" 
+                        name="url" 
+                        defaultValue={this.state.request.url}
+                        placeholder="http://api.url/here"
+                        onChange={this.changeURL}
+                    />
                     <div className="methods">
-                        <input onChange={this.handleSelect} type="radio" id="get" name="method" value="get" />
-                        <label for="get">GET</label>
-                        <input onChange={this.handleSelect} type="radio" id="delete" name="method" value="delete" />
-                        <label for="delete">DELETE</label>
-                        <input onChange={this.handleSelect} type="radio" id="post" name="method" value="post" />
-                        <label for="post">POST</label>
-                        <input onChange={this.handleSelect} type="radio" id="put" name="method" value="put" />
-                        <label for="put">PUT</label>
+                        <span className={`method ${this.state.request.method === 'get'}`} onClick={() => this.changeMethod('get')}>
+                            GET
+                        </span>
+                        <span className={`method ${this.state.request.method === 'post'}`} onClick={() => this.changeMethod('post')}>
+                            POST
+                        </span>
+                        <span className={`method ${this.state.request.method === 'put'}`} onClick={() => this.changeMethod('put')}>
+                            PUT
+                        </span>
+                        <span className={`method ${this.state.request.method === 'delete'}`} onClick={() => this.changeMethod('delete')}>
+                            DELETE
+                        </span>
                     </div>
-                    <button>Submit</button>
+                    <button>GO</button>
+                    <textarea name="data" onChange={this.changeBody} defaultValue={this.state.request.data} ></textarea>
                 </form>
-
-                <div className="displayParentBox">
-                    <div className="displayState">
-                        <h3>URL:</h3>
-                        <h4>{this.state.url}</h4>
-                    </div>
-                    <div className="displayState">
-                        <h3>METHOD:</h3>
-                        <h4>{this.state.method}</h4>
-                    </div>
-                </div>
             </div>
         )
     }
